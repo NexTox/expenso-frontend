@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import ExpenseItem from '../components/ExpenseItem';
 import ExpenseAdd from '../components/ExpenseAdd';
 import ExpenseSorter from '../components/ExpenseSorter';
-import type { Expense } from '../types/Expense';
+import type { Expense, ExpenseWithoutId } from '../types/Expense';
 
 export default function Home() {
   const [sortingAlgo, setSortingAlgo] = useState<(a: Expense, b: Expense) => number>(() => () => 0);
@@ -46,12 +46,15 @@ export default function Home() {
     fetchExpenses();
   }, []);
 
-  const handleAddExpense = async (newExpense: Expense) => {
-    const newExpensesOptimistic = [newExpense, ...expenses]; // Optimistically update the state, whatever the sort method, add on top
-    setExpenses(newExpensesOptimistic);
-    const addedExpense = await sendApiRequestandHandleError('POST', 'expenses', newExpense);
-    const newExpensesActual = [addedExpense, ...expenses]; // Now that we have the actual added expense with id from backend, let's use it instead of the optimistically added one
-    setExpenses(newExpensesActual);
+  const handleAddExpense = async (expenseInput: ExpenseWithoutId) => {
+    try {
+      const addedExpense = await sendApiRequestandHandleError('POST', 'expenses', expenseInput);
+      if (addedExpense) {
+        setExpenses([addedExpense, ...expenses]);
+      }
+    } catch (e) {
+      // error already handled in sendApiRequestandHandleError
+    }
   };
 
   const handleResetData = async () => {
@@ -80,7 +83,7 @@ export default function Home() {
       {error && <div>Error: {error}</div>}
 
       <div>
-        <ExpenseAdd addExpense={handleAddExpense} />
+  <ExpenseAdd addExpense={handleAddExpense} />
         <button onClick={handleResetData}>Reset Data</button>
       </div>
 
